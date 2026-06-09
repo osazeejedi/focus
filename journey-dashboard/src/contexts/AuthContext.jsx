@@ -47,12 +47,35 @@ export const AuthProvider = ({ children }) => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      setProfile(data);
+
+      if (!data) {
+        // Profile doesn't exist, create it automatically
+        const { data: userData } = await supabase.auth.getUser();
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: userData.user.email,
+            full_name: userData.user.user_metadata?.full_name || '',
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          setProfile(null);
+        } else {
+          setProfile(newProfile);
+        }
+      } else {
+        setProfile(data);
+      }
     } catch (error) {
       console.error('Error loading profile:', error);
+      setProfile(null);
     } finally {
       setLoading(false);
     }

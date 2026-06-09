@@ -1,0 +1,55 @@
+.analytics-page {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+  padding: 2rem;
+}
+
+.coming-soon-icon {
+  color: var(--color-accent);
+  margin-bottom: 1.5rem;
+  opacity: 0.6;
+}
+
+.coming-soon h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+}
+
+.coming-soon p {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.feature-list {
+  list-style: none;
+  padding: 0;
+  max-width: 400px;
+}
+
+.feature-list li {
+  padding: 0.75rem 1.25rem;
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-md);
+  margin-bottom: 0.5rem;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+.feature-list li::before {
+  content: '✓';
+  color: var(--color-accent);
+  font-weight: bold;
+  margin-right: 0.75rem;
+}

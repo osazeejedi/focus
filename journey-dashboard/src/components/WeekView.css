@@ -1,0 +1,91 @@
+.week-view {
+  background: var(--color-background-primary);
+  border: 1px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 1rem 1.25rem;
+}
+
+.week-days {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.week-day {
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+}
+
+.week-day-label {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.week-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  border: 2px solid var(--color-border-tertiary);
+  background: var(--color-background-secondary);
+  color: var(--color-text-tertiary);
+  transition: all 0.2s ease;
+}
+
+.week-dot:hover {
+  transform: scale(1.1);
+  border-color: var(--color-border-primary);
+}
+
+.week-dot.done {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: white;
+}
+
+.week-dot.today {
+  border: 2px solid var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 600;
+  border-width: 2.5px;
+}
+
+.week-dot.today.done {
+  background: var(--color-accent);
+  color: white;
+}
+
+.week-dot.future {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.week-dot.future:hover {
+  transform: none;
+}
+
+@media (max-width: 520px) {
+  .week-days {
+    gap: 0.25rem;
+  }
+  
+  .week-dot {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+  
+  .week-day-label {
+    font-size: 10px;
+  }
+}

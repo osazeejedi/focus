@@ -12,11 +12,15 @@
   top: 0;
   z-index: 100;
   backdrop-filter: blur(10px);
-  background: rgba(var(--color-background-primary-rgb, 255, 255, 255), 0.9);
+  /* ✅ Fixed: use actual CSS variables, no undefined rgb fallback */
+  background: color-mix(in srgb, var(--color-background-primary) 92%, transparent);
 }
 
-[data-theme='dark'] .header {
-  background: rgba(26, 26, 26, 0.9);
+/* Fallback for browsers without color-mix */
+@supports not (background: color-mix(in srgb, black 50%, white)) {
+  .header {
+    background: var(--color-background-primary);
+  }
 }
 
 .header-content {
@@ -35,6 +39,7 @@
   color: var(--color-accent);
   text-decoration: none;
   transition: opacity 0.2s ease;
+  flex-shrink: 0;
 }
 
 .logo:hover {
@@ -48,6 +53,7 @@
   flex: 1;
 }
 
+/* ✅ Fixed: use NavLink active class properly */
 .nav-link {
   display: inline-flex;
   align-items: center;
@@ -75,6 +81,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .icon-btn-lg {
@@ -97,6 +104,26 @@
   color: var(--color-text-primary);
 }
 
+/* ✅ Added: missing icon-btn class used by TimeBlockCard */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+  background: var(--color-background-tertiary);
+  color: var(--color-text-primary);
+}
+
 .main {
   flex: 1;
   padding: 2rem 0;
@@ -112,16 +139,63 @@
   font-style: italic;
 }
 
+/* Mobile menu button — hidden on desktop */
+.mobile-menu-btn {
+  display: none;
+}
+
+/* Mobile dropdown nav */
+.mobile-nav {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .header-content {
     gap: 1rem;
   }
 
+  /* Hide desktop nav on mobile */
   .nav {
     display: none;
   }
 
   .logo span {
     display: none;
+  }
+
+  /* Show hamburger on mobile */
+  .mobile-menu-btn {
+    display: inline-flex;
+  }
+
+  /* Mobile dropdown nav */
+  .mobile-nav {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--color-border-tertiary);
+    padding: 0.5rem 0;
+    background: var(--color-background-primary);
+  }
+
+  .mobile-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+  }
+
+  .mobile-nav-link:hover {
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+  }
+
+  .mobile-nav-link.active {
+    color: var(--color-accent);
+    background: var(--color-background-secondary);
   }
 }

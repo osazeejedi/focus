@@ -26,6 +26,32 @@
   gap: 1rem;
 }
 
+/* Auto-save status indicator */
+.save-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--border-radius-md);
+  transition: all 0.2s ease;
+}
+
+.save-indicator.saving {
+  color: var(--color-text-tertiary);
+  background: var(--color-background-secondary);
+}
+
+.save-indicator.saved {
+  color: var(--color-success, #10b981);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.save-indicator .spin {
+  animation: spin 0.8s linear infinite;
+}
+
 .dash-title {
   font-size: 32px;
   font-weight: 600;

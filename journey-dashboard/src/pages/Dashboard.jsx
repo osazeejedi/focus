@@ -9,7 +9,8 @@ import {
   TrendingUp, 
   Calendar as CalendarIcon, 
   Target,
-  Save,
+  CheckCircle2,
+  Loader2,
   BookOpen,
   Loader
 } from 'lucide-react';
@@ -24,6 +25,8 @@ export default function Dashboard() {
     dailyEntry,
     completions,
     stats,
+    weekData,
+    saveStatus,
     toggleTask,
     updateJournal
   } = useDashboard(currentDate);
@@ -42,6 +45,27 @@ export default function Dashboard() {
     );
   }
 
+  // Save status indicator component
+  const SaveIndicator = () => {
+    if (saveStatus === 'saving') {
+      return (
+        <div className="save-indicator saving">
+          <Loader2 size={14} className="spin" />
+          <span>Saving…</span>
+        </div>
+      );
+    }
+    if (saveStatus === 'saved') {
+      return (
+        <div className="save-indicator saved">
+          <CheckCircle2 size={14} />
+          <span>Saved</span>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="container dashboard">
       {/* Header */}
@@ -52,10 +76,7 @@ export default function Dashboard() {
           </h1>
           <p className="dash-date">{format(currentDate, 'MMMM d, yyyy')}</p>
         </div>
-        <button className="btn btn-primary">
-          <Save size={16} />
-          Saved
-        </button>
+        <SaveIndicator />
       </div>
 
       {/* Stats Row */}
@@ -92,7 +113,7 @@ export default function Dashboard() {
           <CalendarIcon size={18} />
           <h2>This Week</h2>
         </div>
-        <WeekView currentDate={currentDate} weekData={{}} />
+        <WeekView currentDate={currentDate} weekData={weekData} />
       </div>
 
       {/* Progress Bar */}

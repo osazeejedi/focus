@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, startOfWeek, addDays, startOfMonth, endOfMonth } from 'date-fns';
@@ -10,6 +10,8 @@ export function useDashboard(selectedDate = new Date()) {
   const [blockTasks, setBlockTasks] = useState({});
   const [dailyEntry, setDailyEntry] = useState(null);
   const [completions, setCompletions] = useState({});
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
+  const [weekData, setWeekData] = useState({});
   const [stats, setStats] = useState({
     streak: 0,
     weekScore: 0,
@@ -18,6 +20,7 @@ export function useDashboard(selectedDate = new Date()) {
   });
 
   const dateKey = format(selectedDate, 'yyyy-MM-dd');
+  const journalDebounceRef = useRef({});
 
   // Load time blocks and tasks
   useEffect(() => {
@@ -56,6 +59,7 @@ export function useDashboard(selectedDate = new Date()) {
       }
     } catch (error) {
       console.error('Error loading time blocks:', error);
+      setLoading(false); // ✅ Fixed: ensure loading clears on error
     }
   };
 
@@ -142,6 +146,9 @@ export function useDashboard(selectedDate = new Date()) {
   const toggleTask = async (taskId, completed) => {
     if (!dailyEntry) return;
 
+    // Optimistic update
+    setCompletions(prev => ({ ...prev, [taskId]: completed }));
+
     try {
       const { error } = await supabase
         .from('task_completions')
@@ -155,27 +162,81 @@ export function useDashboard(selectedDate = new Date()) {
         });
 
       if (error) throw error;
-
-      setCompletions(prev => ({ ...prev, [taskId]: completed }));
     } catch (error) {
       console.error('Error toggling task:', error);
+      // Revert optimistic update on failure
+      setCompletions(prev => ({ ...prev, [taskId]: !completed }));
     }
   };
 
-  const updateJournal = async (field, value) => {
+  // ✅ Fixed: update local state IMMEDIATELY, then debounce DB write
+  const updateJournal = useCallback((field, value) => {
     if (!dailyEntry) return;
 
+    // Update local state immediately for responsive typing
+    setDailyEntry(prev => ({ ...prev, [field]: value }));
+    setSaveStatus('saving');
+
+    // Clear any pending debounce for this field
+    if (journalDebounceRef.current[field]) {
+      clearTimeout(journalDebounceRef.current[field]);
+    }
+
+    // Debounce the DB write by 600ms
+    journalDebounceRef.current[field] = setTimeout(async () => {
+      try {
+        const { error } = await supabase
+          .from('daily_entries')
+          .update({ [field]: value })
+          .eq('id', dailyEntry.id);
+
+        if (error) throw error;
+        setSaveStatus('saved');
+
+        // Reset to idle after 2 seconds
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } catch (error) {
+        console.error('Error updating journal:', error);
+        setSaveStatus('idle');
+      }
+    }, 600);
+  }, [dailyEntry]);
+
+  const loadWeekData = async (allTasks) => {
     try {
-      const { error } = await supabase
-        .from('daily_entries')
-        .update({ [field]: value })
-        .eq('id', dailyEntry.id);
+      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+      const totalTasks = allTasks.length;
+      if (totalTasks === 0) return;
 
-      if (error) throw error;
+      const result = {};
 
-      setDailyEntry(prev => ({ ...prev, [field]: value }));
+      for (let i = 0; i < 7; i++) {
+        const day = addDays(weekStart, i);
+        const key = format(day, 'yyyy-MM-dd');
+
+        const { data: entry } = await supabase
+          .from('daily_entries')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('entry_date', key)
+          .maybeSingle();
+
+        if (entry) {
+          const { data: comps } = await supabase
+            .from('task_completions')
+            .select('completed')
+            .eq('daily_entry_id', entry.id)
+            .eq('completed', true);
+
+          result[key] = { completed: totalTasks > 0 ? (comps?.length || 0) / totalTasks : 0 };
+        } else {
+          result[key] = { completed: 0 };
+        }
+      }
+
+      setWeekData(result);
     } catch (error) {
-      console.error('Error updating journal:', error);
+      console.error('Error loading week data:', error);
     }
   };
 
@@ -186,6 +247,9 @@ export function useDashboard(selectedDate = new Date()) {
       const totalTasks = allTasks.length;
       const completedTasks = allTasks.filter(task => completions[task.id]).length;
       const todayProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      // Load week data for WeekView component
+      await loadWeekData(allTasks);
 
       // Calculate streak
       const streak = await calculateStreak();
@@ -211,9 +275,11 @@ export function useDashboard(selectedDate = new Date()) {
     let streak = 0;
     let checkDate = new Date();
     const allTasks = Object.values(blockTasks).flat();
+    if (allTasks.length === 0) return 0;
     const threshold = Math.floor(allTasks.length * 0.8);
+    const MAX_STREAK = 365; // ✅ Fixed: safety cap to prevent infinite loop
 
-    while (true) {
+    while (streak < MAX_STREAK) {
       const key = format(checkDate, 'yyyy-MM-dd');
       const { data: entry } = await supabase
         .from('daily_entries')
@@ -244,6 +310,7 @@ export function useDashboard(selectedDate = new Date()) {
   const calculateWeekScore = async () => {
     const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
     const allTasks = Object.values(blockTasks).flat();
+    if (allTasks.length === 0) return 0;
     let totalPossible = 0;
     let totalCompleted = 0;
 
@@ -279,6 +346,7 @@ export function useDashboard(selectedDate = new Date()) {
     const monthStart = startOfMonth(selectedDate);
     const monthEnd = endOfMonth(selectedDate);
     const allTasks = Object.values(blockTasks).flat();
+    if (allTasks.length === 0) return 0;
     const threshold = Math.floor(allTasks.length * 0.8);
 
     const { data: entries } = await supabase
@@ -442,6 +510,7 @@ export function useDashboard(selectedDate = new Date()) {
       await loadTimeBlocks();
     } catch (error) {
       console.error('Error initializing default blocks:', error);
+      setLoading(false);
     }
   };
 
@@ -452,6 +521,8 @@ export function useDashboard(selectedDate = new Date()) {
     dailyEntry,
     completions,
     stats,
+    weekData,
+    saveStatus,
     toggleTask,
     updateJournal,
     refreshData: loadTimeBlocks
